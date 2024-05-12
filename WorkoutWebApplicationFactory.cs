@@ -26,11 +26,13 @@ namespace Workout_API_Test_Suite
                 // remove current options
                 services.RemoveAll(typeof(DbContextOptions<DBContext>));
                 // use test database connection string
-                services.AddSqlServer<DBContext>(ConnectionString.GetConnectionString());
+                var connectionString = ConnectionString.GetConnectionString();
+                services.AddSqlServer<DBContext>(connectionString);
 
                 var dbContext = CreateDbContext(services);
                 // if database exists destroy it so that we can have a clean database for integration testing
                 dbContext.Database.EnsureDeleted();
+                dbContext.Database.EnsureCreated();
             });
         }
 
