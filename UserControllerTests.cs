@@ -101,19 +101,10 @@ namespace Workout_API_Test_Suite
 
             // Arrange
             var application = new WorkoutWebApplicationFactory();
-
-            User validUser = new User
-            {
-                Name = Name,
-                Email = Email,
-                Id = Id
-            };
-
             var httpClient = application.CreateClient();
 
             // Act
-            await httpClient.PostAsJsonAsync("/User", validUser);
-
+            await CreateUserHelper(httpClient, Name, Email);
             var response = await httpClient.GetAsync($"/User?Email={Email}");
 
             // Assert
@@ -124,6 +115,20 @@ namespace Workout_API_Test_Suite
             clientReponse?.Id.Should().BePositive();
             clientReponse?.Name.Should().Be(Name);
             clientReponse?.Email.Should().Be(Email);
+        }
+
+        private async Task<User?> CreateUserHelper(HttpClient httpClient, string Name, string Email)
+        {
+            User? user = new User
+            {
+                Name = Name,
+                Email = Email,
+                Id = 0
+            };
+
+            // Act
+            var response = await httpClient.PostAsJsonAsync("/User", user);
+            return await response.Content.ReadFromJsonAsync<User>();
         }
     }
 }
