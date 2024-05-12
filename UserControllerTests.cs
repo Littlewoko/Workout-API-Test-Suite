@@ -14,15 +14,11 @@ namespace Workout_API_Test_Suite
             string Name = "Test";
             string Email = "test@email.com";
 
-            // Arrange
             var application = new WorkoutWebApplicationFactory();
-
             var httpClient = application.CreateClient();
 
-            // Act
             var response = await CreateUserHelper(httpClient, Name, Email);
 
-            // Assert
             response.EnsureSuccessStatusCode();
 
             var clientReponse = await response.Content.ReadFromJsonAsync<User>();
@@ -35,7 +31,6 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task CreateUser_shouldFail()
         {
-            // Arrange
             string validName = "Test";
             string validEmail = "test@email.com";
             string invalidEmail = "testemai.com";
@@ -73,7 +68,6 @@ namespace Workout_API_Test_Suite
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
-            // Act / Assert
             for(int i = 0; i < invalidUsers.Length; i++)
             {
                 User user = invalidUsers[i];
@@ -110,25 +104,20 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task DeleteUser()
         {
-            // Arrange
             string Name = "Test";
             string Email = "test@email.com";
 
-            // Arrange
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
-            // Act
             await CreateUserHelper(httpClient, Name, Email);
             var getResponse = await httpClient.GetAsync($"/User?Email={Email}");
             getResponse.EnsureSuccessStatusCode();
 
             var response = await httpClient.DeleteAsync($"/User?Email={Email}");
 
-            // Assert
             response.EnsureSuccessStatusCode();
 
-            // Act
             getResponse = await httpClient.GetAsync($"/User?Email={Email}");
             getResponse.StatusCode.ToString().Should().Be("NotFound");
         }
