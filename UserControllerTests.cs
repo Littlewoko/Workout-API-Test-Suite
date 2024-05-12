@@ -107,6 +107,32 @@ namespace Workout_API_Test_Suite
             clientReponse?.Email.Should().Be(Email);
         }
 
+        [Fact]
+        public async Task DeleteUser()
+        {
+            // Arrange
+            string Name = "Test";
+            string Email = "test@email.com";
+
+            // Arrange
+            var application = new WorkoutWebApplicationFactory();
+            var httpClient = application.CreateClient();
+
+            // Act
+            await CreateUserHelper(httpClient, Name, Email);
+            var getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            getResponse.EnsureSuccessStatusCode();
+
+            var response = await httpClient.DeleteAsync($"/User?Email={Email}");
+
+            // Assert
+            response.EnsureSuccessStatusCode();
+
+            // Act
+            getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            getResponse.StatusCode.ToString().Should().Be("NotFound");
+        }
+
         private async Task<HttpResponseMessage> CreateUserHelper(HttpClient httpClient, string Name, string Email)
         {
             User? user = new User
