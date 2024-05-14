@@ -1,3 +1,4 @@
+using Azure;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using System.Net.Http.Json;
@@ -120,6 +121,36 @@ namespace Workout_API_Test_Suite
 
             getResponse = await httpClient.GetAsync($"/User?Email={Email}");
             getResponse.StatusCode.ToString().Should().Be("NotFound");
+        }
+
+        [Fact]
+        public async Task UpdateUser()
+        {
+            string Name = "Test";
+            string Email = "test@email.com";
+
+            var application = new WorkoutWebApplicationFactory();
+            var httpClient = application.CreateClient();
+
+            await CreateUserHelper(httpClient, Name, Email);
+            var getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            getResponse.EnsureSuccessStatusCode();
+
+            var clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
+            clientReponse?.Should().NotBeNull();
+
+            string updatedName = "Updated";
+
+            clientReponse.Name = updatedName;
+            var response = await httpClient.PutAsJsonAsync("/User", clientReponse);
+            response.EnsureSuccessStatusCode();
+
+            getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            getResponse.EnsureSuccessStatusCode();
+
+            clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
+
+            clientReponse?.Name.Should().Be(updatedName);
         }
 
         private async Task<HttpResponseMessage> CreateUserHelper(HttpClient httpClient, string Name, string Email)
