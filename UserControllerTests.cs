@@ -9,17 +9,15 @@ namespace Workout_API_Test_Suite
 {
     public class UserControllerTests
     {
+        private static string Name = "Test";
+        private static string Email = "test@email.com";
         [Fact]
         public async Task CreateUser_successful()
         {
-            string Name = "Test";
-            string Email = "test@email.com";
-
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
-            var response = await CreateUserHelper(httpClient, Name, Email);
-
+            var response = await CreateUserHelper(httpClient);
             response.EnsureSuccessStatusCode();
 
             var clientReponse = await response.Content.ReadFromJsonAsync<User>();
@@ -32,8 +30,6 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task CreateUser_shouldFail()
         {
-            string validName = "Test";
-            string validEmail = "test@email.com";
             string invalidEmail = "testemai.com";
 
             // probably move this out to some form of metadata
@@ -42,14 +38,14 @@ namespace Workout_API_Test_Suite
             {
                 new User
                 {
-                    Name = validName,
+                    Name = Name,
                     Email = String.Empty,
                     Id = 0
                 },
                 new User
                 {
                     Name = String.Empty,
-                    Email = validEmail,
+                    Email = Email,
                     Id = 0
                 },
                 new User
@@ -69,7 +65,7 @@ namespace Workout_API_Test_Suite
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
-            for(int i = 0; i < invalidUsers.Length; i++)
+            for (int i = 0; i < invalidUsers.Length; i++)
             {
                 User user = invalidUsers[i];
 
@@ -82,16 +78,11 @@ namespace Workout_API_Test_Suite
         public async Task GetUser()
         {
             // Arrange
-            string Name = "Test";
-            string Email = "test@email.com";
-
-            // Arrange
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
             // Act
-            await CreateUserHelper(httpClient, Name, Email);
-            var response = await httpClient.GetAsync($"/User?Email={Email}");
+            var response = await CreateAndGetUserHelper(httpClient);
 
             // Assert
             response.EnsureSuccessStatusCode();
@@ -105,14 +96,10 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task DeleteUser()
         {
-            string Name = "Test";
-            string Email = "test@email.com";
-
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
-            await CreateUserHelper(httpClient, Name, Email);
-            var getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            var getResponse = await CreateAndGetUserHelper(httpClient);
             getResponse.EnsureSuccessStatusCode();
 
             var response = await httpClient.DeleteAsync($"/User?Email={Email}");
@@ -126,21 +113,19 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task UpdateUser()
         {
-            string Name = "Test";
-            string Email = "test@email.com";
+            string updatedName = "Updated";
 
             var application = new WorkoutWebApplicationFactory();
             var httpClient = application.CreateClient();
 
-            await CreateUserHelper(httpClient, Name, Email);
-            var getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            // create a valid user
+            var getResponse = await CreateAndGetUserHelper(httpClient);
             getResponse.EnsureSuccessStatusCode();
 
             var clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
             clientReponse?.Should().NotBeNull();
 
-            string updatedName = "Updated";
-
+            // update the user
             clientReponse.Name = updatedName;
             var response = await httpClient.PutAsJsonAsync("/User", clientReponse);
             response.EnsureSuccessStatusCode();
@@ -153,7 +138,7 @@ namespace Workout_API_Test_Suite
             clientReponse?.Name.Should().Be(updatedName);
         }
 
-        private async Task<HttpResponseMessage> CreateUserHelper(HttpClient httpClient, string Name, string Email)
+        private async Task<HttpResponseMessage> CreateUserHelper(HttpClient httpClient)
         {
             User? user = new User
             {
@@ -162,8 +147,13 @@ namespace Workout_API_Test_Suite
                 Id = 0
             };
 
-            // Act
             return await httpClient.PostAsJsonAsync("/User", user);
+        }
+
+        private async Task<HttpResponseMessage> CreateAndGetUserHelper(HttpClient httpClient)
+        {
+            await CreateUserHelper(httpClient);
+            return await httpClient.GetAsync($"/User?Email={Email}");
         }
     }
 }
