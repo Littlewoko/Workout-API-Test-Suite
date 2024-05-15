@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using System.Net.Http.Json;
 using System.Runtime.ConstrainedExecution;
 using Workout_API.Models;
-using 
 
 namespace Workout_API_Test_Suite
 {
@@ -13,7 +12,7 @@ namespace Workout_API_Test_Suite
         private static string Name = "Test";
         private static string Email = "test@email.com";
         [Fact]
-        public async Task CreateUser_successful()
+        public async Task CreateUser_ShouldSucceed()
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
@@ -28,7 +27,7 @@ namespace Workout_API_Test_Suite
         }
 
         [Fact]
-        public async Task CreateUser_shouldFail()
+        public async Task CreateUser_ShouldFail()
         {
             string invalidEmail = "testemai.com";
 
