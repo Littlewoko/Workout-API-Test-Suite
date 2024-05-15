@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using System.Net.Http.Json;
 using System.Runtime.ConstrainedExecution;
 using Workout_API.Models;
+using 
 
 namespace Workout_API_Test_Suite
 {
@@ -14,8 +15,7 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task CreateUser_successful()
         {
-            var application = new WorkoutWebApplicationFactory();
-            var httpClient = application.CreateClient();
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             var response = await CreateUserHelper(httpClient);
             response.EnsureSuccessStatusCode();
@@ -62,8 +62,7 @@ namespace Workout_API_Test_Suite
                 },
             };
 
-            var application = new WorkoutWebApplicationFactory();
-            var httpClient = application.CreateClient();
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             for (int i = 0; i < invalidUsers.Length; i++)
             {
@@ -78,8 +77,7 @@ namespace Workout_API_Test_Suite
         public async Task GetUser()
         {
             // Arrange
-            var application = new WorkoutWebApplicationFactory();
-            var httpClient = application.CreateClient();
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             // Act
             var response = await CreateAndGetUserHelper(httpClient);
@@ -96,8 +94,7 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task DeleteUser()
         {
-            var application = new WorkoutWebApplicationFactory();
-            var httpClient = application.CreateClient();
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             var getResponse = await CreateAndGetUserHelper(httpClient);
             getResponse.EnsureSuccessStatusCode();
@@ -113,28 +110,31 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task UpdateUser()
         {
-            string updatedName = "Updated";
-
-            var application = new WorkoutWebApplicationFactory();
-            var httpClient = application.CreateClient();
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             // create a valid user
             var getResponse = await CreateAndGetUserHelper(httpClient);
             getResponse.EnsureSuccessStatusCode();
 
+            // ensure user exists 
             var clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
             clientReponse?.Should().NotBeNull();
 
-            // update the user
+            if (clientReponse == null)
+            {
+                throw new Exception("Failed initial user creation");
+            }
+
+            // attempt user update
+            string updatedName = "Updated";
             clientReponse.Name = updatedName;
             var response = await httpClient.PutAsJsonAsync("/User", clientReponse);
             response.EnsureSuccessStatusCode();
 
+            // validate update succeeded
             getResponse = await httpClient.GetAsync($"/User?Email={Email}");
             getResponse.EnsureSuccessStatusCode();
-
             clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
-
             clientReponse?.Name.Should().Be(updatedName);
         }
 
