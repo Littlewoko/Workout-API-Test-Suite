@@ -14,7 +14,7 @@ namespace Workout_API_Test_Suite
         private static readonly string Email = "test@email.com";
 
         [Fact]
-        public async Task CreateUser_ShouldSucceed()
+        public async Task CreateUser()
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
@@ -28,7 +28,7 @@ namespace Workout_API_Test_Suite
         }
 
         [Fact]
-        public async Task CreateUser_ShouldFail()
+        public async Task CreateInvalidUsersShouldFail()
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
@@ -40,6 +40,20 @@ namespace Workout_API_Test_Suite
                 var response = await httpClient.PostAsJsonAsync("/User", user);
                 response.StatusCode.ToString().Should().Be("BadRequest");
             }
+        }
+
+        [Fact]
+        public async Task CreateUserThatAlreadyExistsShouldFail()
+        {
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
+
+            await AttemptCreateUser(httpClient);
+
+            var badCreateResponse = await AttemptCreateUser(httpClient);
+            badCreateResponse.StatusCode.ToString().Should().Be("BadRequest");
+
+            string responseBody = await badCreateResponse.Content.ReadAsStringAsync();
+            responseBody.Should().Be("A user is already associated with that email");
         }
 
         private User[] GetInvalidUsers()
@@ -96,7 +110,7 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            await CreateAndGetUserHelper(httpClient);
+            await AttemptCreateUser(httpClient);
 
             var response = await httpClient.DeleteAsync($"/User?Email={Email}");
             response.EnsureSuccessStatusCode();
@@ -131,6 +145,23 @@ namespace Workout_API_Test_Suite
 
             clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
             clientReponse?.Name.Should().Be(updatedName);
+        }
+
+        [Fact]
+        public async Task UpdateUserThatDoesNotExistShouldFail()
+        {
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
+
+            User user = new User()
+            {
+                Name = Name,
+                Email = Email, 
+                Id = 0
+                
+            };
+
+            var updateResponse = await AttemptUserUpdate(httpClient, user);
+            updateResponse.StatusCode.ToString().Should().Be("BadRequest");
         }
 
         private static async Task<HttpResponseMessage> AttemptUserUpdate(HttpClient httpClient, User user)
