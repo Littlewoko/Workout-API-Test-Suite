@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Writers;
 using Workout_API;
 using Workout_API.DBContexts;
@@ -11,42 +14,52 @@ using Workout_API.DBContexts;
 namespace Workout_API_Test_Suite
 {
     /// <summary>
-    /// Bootstrap workout api and redirect connection to test database
+    /// Bootstrap a web api environment to simulate the workout api in a production environment
+    /// 
+    /// The connection string used will be overwritten, this should point to a test database to ensure
+    /// no impact on production during testing
     /// </summary>
     internal class WorkoutWebApplicationFactory : WebApplicationFactory<Program>
     {
-        /// <summary>
-        /// Configure services and overwrite db context connection string
-        /// </summary>
-        /// <param name="builder"></param>
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureTestServices(services =>
             {
-                // remove current options
-                services.RemoveAll(typeof(DbContextOptions<DBContext>));
-                // use test database connection string
-                var connectionString = ConnectionString.GetConnectionString();
-                services.AddSqlServer<DBContext>(connectionString);
+                ConnectToTestDatabase(services);
 
-                var dbContext = CreateDbContext(services);
-                // if database exists destroy it so that we can have a clean database for integration testing
-                dbContext.Database.EnsureDeleted();
-                dbContext.Database.EnsureCreated();
+                var dbContext = CreateDatabaseContext(services);
+
+                EnsureCleanTestDatabase(dbContext);
             });
         }
 
-        /// <summary>
-        /// Creates a new db context object
-        /// </summary>
-        /// <param name="services"></param>
-        /// <returns></returns>
-        private static DBContext CreateDbContext(IServiceCollection services)
+        private static DBContext CreateDatabaseContext(IServiceCollection services)
         {
             var serviceProvider = services.BuildServiceProvider();
             var Scope = serviceProvider.CreateScope();
             var dbContext = Scope.ServiceProvider.GetRequiredService<DBContext>();
+
             return dbContext;
+        }
+
+        private static void ConnectToTestDatabase(IServiceCollection services)
+        {
+            services.RemoveAll(typeof(DbContextOptions<DBContext>));
+
+            var connectionString = Utils.GetConfigurationItem("TESTConnectionString");
+            services.AddSqlServer<DBContext>(connectionString);
+        }
+
+        private static void EnsureCleanTestDatabase(DBContext dbContext)
+        {
+            lock(dbContext)
+            {
+                if (dbContext.Database.CanConnect())
+                {
+                    dbContext.Database.EnsureDeleted();
+                    dbContext.Database.EnsureCreated();
+                }
+            }
         }
     }
 }
