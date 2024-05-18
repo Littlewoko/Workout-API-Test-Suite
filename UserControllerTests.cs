@@ -9,8 +9,9 @@ namespace Workout_API_Test_Suite
 {
     public class UserControllerTests
     {
-        private static string Name = "Test";
-        private static string Email = "test@email.com";
+        private static readonly string Name = "Test";
+        private static readonly string Email = "test@email.com";
+
         [Fact]
         public async Task CreateUser_ShouldSucceed()
         {
@@ -20,7 +21,6 @@ namespace Workout_API_Test_Suite
             response.EnsureSuccessStatusCode();
 
             var clientReponse = await response.Content.ReadFromJsonAsync<User>();
-
             clientReponse?.Id.Should().BePositive();
             clientReponse?.Name.Should().Be(Name);
             clientReponse?.Email.Should().Be(Email);
@@ -29,6 +29,8 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task CreateUser_ShouldFail()
         {
+            var httpClient = Utils.ScaffoldApplicationAndGetClient();
+
             string invalidEmail = "testemai.com";
 
             // probably move this out to some form of metadata
@@ -61,12 +63,9 @@ namespace Workout_API_Test_Suite
                 },
             };
 
-            var httpClient = Utils.ScaffoldApplicationAndGetClient();
-
             for (int i = 0; i < invalidUsers.Length; i++)
             {
                 User user = invalidUsers[i];
-
                 var response = await httpClient.PostAsJsonAsync("/User", user);
                 response.StatusCode.ToString().Should().Be("BadRequest");
             }
@@ -75,17 +74,12 @@ namespace Workout_API_Test_Suite
         [Fact]
         public async Task GetUser()
         {
-            // Arrange
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            // Act
             var response = await CreateAndGetUserHelper(httpClient);
 
-            // Assert
             response.EnsureSuccessStatusCode();
-
             var clientReponse = await response.Content.ReadFromJsonAsync<User>();
-
             clientReponse?.Name.Should().Be(Name);
             clientReponse?.Email.Should().Be(Email);
         }
@@ -99,7 +93,6 @@ namespace Workout_API_Test_Suite
             getResponse.EnsureSuccessStatusCode();
 
             var response = await httpClient.DeleteAsync($"/User?Email={Email}");
-
             response.EnsureSuccessStatusCode();
 
             getResponse = await httpClient.GetAsync($"/User?Email={Email}");
