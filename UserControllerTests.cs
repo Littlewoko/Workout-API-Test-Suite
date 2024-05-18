@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.ConstrainedExecution;
+using Workout_API.DTO;
 using Workout_API.Models;
 
 namespace Workout_API_Test_Suite
@@ -12,16 +13,16 @@ namespace Workout_API_Test_Suite
     {
         private static readonly string Name = "Test";
         private static readonly string Email = "test@email.com";
-
+        
         [Fact]
         public async Task CreateUser()
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            var response = await AttemptCreateUser(httpClient);
+            var response = await AttemptCreateValidUser(httpClient);
             response.EnsureSuccessStatusCode();
 
-            var clientReponse = await response.Content.ReadFromJsonAsync<User>();
+            var clientReponse = await response.Content.ReadFromJsonAsync<UserTransferObject>();
             clientReponse?.Id.Should().BePositive();
             clientReponse?.Name.Should().Be(Name);
             clientReponse?.Email.Should().Be(Email);
@@ -32,11 +33,11 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            User[] invalidUsers = GetInvalidUsers();
+            UserTransferObject[] invalidUsers = GetInvalidUsers();
 
             for (int i = 0; i < invalidUsers.Length; i++)
             {
-                User user = invalidUsers[i];
+                UserTransferObject user = invalidUsers[i];
                 var response = await httpClient.PostAsJsonAsync("/User", user);
                 response.StatusCode.ToString().Should().Be("BadRequest");
             }
@@ -47,40 +48,40 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            await AttemptCreateUser(httpClient);
+            await AttemptCreateValidUser(httpClient);
 
-            var badCreateResponse = await AttemptCreateUser(httpClient);
+            var badCreateResponse = await AttemptCreateValidUser(httpClient);
             badCreateResponse.StatusCode.ToString().Should().Be("BadRequest");
 
             string responseBody = await badCreateResponse.Content.ReadAsStringAsync();
             responseBody.Should().Be("A user is already associated with that email");
         }
 
-        private User[] GetInvalidUsers()
+        private UserTransferObject[] GetInvalidUsers()
         {
             string invalidEmail = "testemai.com";
 
-            User[] invalidUsers = new User[]
+            UserTransferObject[] invalidUsers = new UserTransferObject[]
             {
-                new User
+                new UserTransferObject
                 {
                     Name = Name,
                     Email = String.Empty,
                     Id = 0
                 },
-                new User
+                new UserTransferObject
                 {
                     Name = String.Empty,
                     Email = Email,
                     Id = 0
                 },
-                new User
+                new UserTransferObject
                 {
                     Name = String.Empty,
                     Email = invalidEmail,
                     Id = 0
                 },
-                new User
+                new UserTransferObject
                 {
                     Name = String.Empty,
                     Email = String.Empty,
@@ -96,11 +97,11 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            await AttemptCreateUser(httpClient);
+            await AttemptCreateValidUser(httpClient);
             var response = await AttemptGetUser(httpClient, Email);
 
             response.EnsureSuccessStatusCode();
-            var clientReponse = await response.Content.ReadFromJsonAsync<User>();
+            var clientReponse = await response.Content.ReadFromJsonAsync<UserTransferObject>();
             clientReponse?.Name.Should().Be(Name);
             clientReponse?.Email.Should().Be(Email);
         }
@@ -110,7 +111,7 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            await AttemptCreateUser(httpClient);
+            await AttemptCreateValidUser(httpClient);
 
             var response = await httpClient.DeleteAsync($"/User?Email={Email}");
             response.EnsureSuccessStatusCode();
@@ -125,9 +126,9 @@ namespace Workout_API_Test_Suite
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             // create a valid user
-            await AttemptCreateUser(httpClient);
+            await AttemptCreateValidUser(httpClient);
             var getResponse = await AttemptGetUser(httpClient, Email);
-            var clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
+            var clientReponse = await getResponse.Content.ReadFromJsonAsync<UserTransferObject>();
 
             if (clientReponse == null)
             {
@@ -143,7 +144,7 @@ namespace Workout_API_Test_Suite
             getResponse = await AttemptGetUser(httpClient, Email);
             getResponse.EnsureSuccessStatusCode();
 
-            clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
+            clientReponse = await getResponse.Content.ReadFromJsonAsync<UserTransferObject>();
             clientReponse?.Name.Should().Be(updatedName);
         }
 
@@ -152,7 +153,7 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            User user = new User()
+            UserTransferObject user = new UserTransferObject()
             {
                 Name = Name,
                 Email = Email, 
@@ -164,14 +165,14 @@ namespace Workout_API_Test_Suite
             updateResponse.StatusCode.ToString().Should().Be("BadRequest");
         }
 
-        private static async Task<HttpResponseMessage> AttemptUserUpdate(HttpClient httpClient, User user)
+        private static async Task<HttpResponseMessage> AttemptUserUpdate(HttpClient httpClient, UserTransferObject user)
         {
             return await httpClient.PutAsJsonAsync("/User", user);
         }
 
-        private static async Task<HttpResponseMessage> AttemptCreateUser(HttpClient httpClient)
+        private static async Task<HttpResponseMessage> AttemptCreateValidUser(HttpClient httpClient)
         {
-            User? user = new User
+            UserTransferObject? user = new UserTransferObject
             {
                 Name = Name,
                 Email = Email,
