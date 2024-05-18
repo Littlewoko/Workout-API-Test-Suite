@@ -1,6 +1,7 @@
 using Azure;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.ConstrainedExecution;
 using Workout_API.Models;
@@ -17,7 +18,7 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            var response = await CreateUserHelper(httpClient);
+            var response = await AttemptCreateUser(httpClient);
             response.EnsureSuccessStatusCode();
 
             var clientReponse = await response.Content.ReadFromJsonAsync<User>();
@@ -31,10 +32,20 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
+            User[] invalidUsers = GetInvalidUsers();
+
+            for (int i = 0; i < invalidUsers.Length; i++)
+            {
+                User user = invalidUsers[i];
+                var response = await httpClient.PostAsJsonAsync("/User", user);
+                response.StatusCode.ToString().Should().Be("BadRequest");
+            }
+        }
+
+        private User[] GetInvalidUsers()
+        {
             string invalidEmail = "testemai.com";
 
-            // probably move this out to some form of metadata
-            // todo: create parser for plain text metadata
             User[] invalidUsers = new User[]
             {
                 new User
@@ -63,12 +74,7 @@ namespace Workout_API_Test_Suite
                 },
             };
 
-            for (int i = 0; i < invalidUsers.Length; i++)
-            {
-                User user = invalidUsers[i];
-                var response = await httpClient.PostAsJsonAsync("/User", user);
-                response.StatusCode.ToString().Should().Be("BadRequest");
-            }
+            return invalidUsers;
         }
 
         [Fact]
@@ -76,7 +82,8 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            var response = await CreateAndGetUserHelper(httpClient);
+            await AttemptCreateUser(httpClient);
+            var response = await AttemptGetUser(httpClient, Email);
 
             response.EnsureSuccessStatusCode();
             var clientReponse = await response.Content.ReadFromJsonAsync<User>();
@@ -89,14 +96,13 @@ namespace Workout_API_Test_Suite
         {
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
-            var getResponse = await CreateAndGetUserHelper(httpClient);
-            getResponse.EnsureSuccessStatusCode();
+            await CreateAndGetUserHelper(httpClient);
 
             var response = await httpClient.DeleteAsync($"/User?Email={Email}");
             response.EnsureSuccessStatusCode();
 
-            getResponse = await httpClient.GetAsync($"/User?Email={Email}");
-            getResponse.StatusCode.ToString().Should().Be("NotFound");
+            var ensureDeletedResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            ensureDeletedResponse.StatusCode.ToString().Should().Be("NotFound");
         }
 
         [Fact]
@@ -105,23 +111,19 @@ namespace Workout_API_Test_Suite
             var httpClient = Utils.ScaffoldApplicationAndGetClient();
 
             // create a valid user
-            var getResponse = await CreateAndGetUserHelper(httpClient);
-            getResponse.EnsureSuccessStatusCode();
-
-            // ensure user exists 
+            await AttemptCreateUser(httpClient);
+            var getResponse = await AttemptGetUser(httpClient, Email);
             var clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
-            clientReponse?.Should().NotBeNull();
 
             if (clientReponse == null)
             {
                 throw new Exception("Failed initial user creation");
             }
 
-            // attempt user update
             string updatedName = "Updated";
             clientReponse.Name = updatedName;
-            var response = await httpClient.PutAsJsonAsync("/User", clientReponse);
-            response.EnsureSuccessStatusCode();
+            var updateResponse = await AttemptUserUpdate(httpClient, clientReponse);
+            updateResponse.EnsureSuccessStatusCode();
 
             // validate update succeeded
             getResponse = await httpClient.GetAsync($"/User?Email={Email}");
@@ -130,7 +132,12 @@ namespace Workout_API_Test_Suite
             clientReponse?.Name.Should().Be(updatedName);
         }
 
-        private async Task<HttpResponseMessage> CreateUserHelper(HttpClient httpClient)
+        private static async Task<HttpResponseMessage> AttemptUserUpdate(HttpClient httpClient, User user)
+        {
+            return await httpClient.PutAsJsonAsync("/User", user);
+        }
+
+        private static async Task<HttpResponseMessage> AttemptCreateUser(HttpClient httpClient)
         {
             User? user = new User
             {
@@ -142,10 +149,9 @@ namespace Workout_API_Test_Suite
             return await httpClient.PostAsJsonAsync("/User", user);
         }
 
-        private async Task<HttpResponseMessage> CreateAndGetUserHelper(HttpClient httpClient)
+        private static async Task<HttpResponseMessage> AttemptGetUser(HttpClient httpClient, string email)
         {
-            await CreateUserHelper(httpClient);
-            return await httpClient.GetAsync($"/User?Email={Email}");
+            return await httpClient.GetAsync($"/User?Email={email}");
         }
     }
 }
