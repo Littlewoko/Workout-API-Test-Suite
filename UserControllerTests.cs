@@ -126,8 +126,9 @@ namespace Workout_API_Test_Suite
             updateResponse.EnsureSuccessStatusCode();
 
             // validate update succeeded
-            getResponse = await httpClient.GetAsync($"/User?Email={Email}");
+            getResponse = await AttemptGetUser(httpClient, Email);
             getResponse.EnsureSuccessStatusCode();
+
             clientReponse = await getResponse.Content.ReadFromJsonAsync<User>();
             clientReponse?.Name.Should().Be(updatedName);
         }
